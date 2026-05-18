@@ -44,3 +44,39 @@ def crear_equipo(equipo: modelos.EquipamientoCreate, bd: Session = Depends(obten
     bd.refresh(nuevo_equipo)
 
     return nuevo_equipo
+
+
+# 4. PATCH: Reportar falla en un equipo
+@router.patch("/{id_equipamiento}/falla", response_model=modelos.EquipamientoResponse)
+def reportar_falla(id_equipamiento: int, datos: modelos.EquipamientoFalla, bd: Session = Depends(obtener_bd)):
+    equipo = bd.query(modelos.EquipamientoDB).filter(modelos.EquipamientoDB.id_equipamiento == id_equipamiento).first()
+    if not equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+
+    # Modificamos el estado (ej. 'Dañado' o 'En revisión')
+    equipo.estado = datos.estado
+
+    # Nota pro: Aquí en un sistema real guardarías la 'descripcionFalla' en un historial.
+    # Por ahora, dejamos que actualice el estado principal del equipo en la BD.
+    bd.commit()
+    bd.refresh(equipo)
+    return equipo
+
+
+# 5. PATCH: Ajustar inventario (cantidad) de un equipo
+@router.patch("/{id_equipamiento}/inventario", response_model=modelos.EquipamientoResponse)
+def ajustar_inventario(id_equipamiento: int, datos: modelos.EquipamientoAjuste, bd: Session = Depends(obtener_bd)):
+    equipo = bd.query(modelos.EquipamientoDB).filter(modelos.EquipamientoDB.id_equipamiento == id_equipamiento).first()
+    if not equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+
+    # Validamos que no pongan cantidades negativas
+    if datos.cantidad < 0:
+        raise HTTPException(status_code=400, detail="La cantidad de inventario no puede ser negativa")
+
+    # Actualizamos la cantidad física en la base de datos
+    equipo.cantidad = datos.cantidad
+
+    bd.commit()
+    bd.refresh(equipo)
+    return equipo
