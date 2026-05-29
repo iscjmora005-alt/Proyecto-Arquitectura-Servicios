@@ -53,11 +53,8 @@ def reportar_falla(id_equipamiento: int, datos: modelos.EquipamientoFalla, bd: S
     if not equipo:
         raise HTTPException(status_code=404, detail="Equipo no encontrado")
 
-    # Modificamos el estado (ej. 'Dañado' o 'En revisión')
     equipo.estado = datos.estado
 
-    # Nota pro: Aquí en un sistema real guardarías la 'descripcionFalla' en un historial.
-    # Por ahora, dejamos que actualice el estado principal del equipo en la BD.
     bd.commit()
     bd.refresh(equipo)
     return equipo
@@ -80,3 +77,30 @@ def ajustar_inventario(id_equipamiento: int, datos: modelos.EquipamientoAjuste, 
     bd.commit()
     bd.refresh(equipo)
     return equipo
+
+
+# 6. GET: Consultar Equipos por estado
+@router.get("/estado/{estado}", response_model=list[modelos.EquipamientoResponse])
+def consultar_equipos_por_estado(estado: str, bd: Session = Depends(obtener_bd)):
+    # Buscamos todos los equipos que coincidan con el estado solicitado [cite: 74]
+    equipos = bd.query(modelos.EquipamientoDB).filter(modelos.EquipamientoDB.estado == estado).all()
+
+    # Si no hay ninguno, podemos mandar una lista vacía o un error,
+    # por defecto devolvemos la lista (aunque esté vacía)
+    return equipos
+
+
+# 7. DELETE: Eliminar Equipo (Baja definitiva)
+@router.delete("/{id_equipamiento}")
+def eliminar_equipo(id_equipamiento: int, bd: Session = Depends(obtener_bd)):
+    # Primero comprobamos que el equipo exista antes de eliminarlo
+    equipo = bd.query(modelos.EquipamientoDB).filter(modelos.EquipamientoDB.id_equipamiento == id_equipamiento).first()
+
+    if not equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+
+    bd.delete(equipo)
+    bd.commit()
+
+
+    return {"código": 200, "mensaje": "Equipo eliminado correctamente"}

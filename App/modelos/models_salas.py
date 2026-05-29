@@ -12,9 +12,7 @@ class SalasDB(Base):
     estatus = Column(String(1), default="D")
     id_departamento = Column(Integer)
 
-# ==========================================
-# ESQUEMAS DE VALIDACIÓN (Pydantic)
-# ==========================================
+
 
 # 1. Esquema para la operación de Cambiar Estatus (PATCH)
 class SalaUpdateEstatus(BaseModel):
