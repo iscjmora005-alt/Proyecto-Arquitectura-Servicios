@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 # Importamos la conexión a la BD y tus modelos combinados
 from App.dao import obtener_bd
 from App.modelos import models_salas as modelos
+from App.modelos import models_equipamiento
 
 router = APIRouter(prefix="/salas", tags=["Gestion de salas"])
 
@@ -86,4 +87,34 @@ def eliminar_sala(id_sala: int, bd: Session = Depends(obtener_bd)):
     return {
         "código": 200,
         "mensaje": "Sala eliminada con éxito. (Advertencia: Se eliminó en cascada su equipamiento y mobiliario asociado)"
+    }
+
+
+# 6. GET: Consultar equipamiento de la sala
+@router.get("/{id_sala}/equipamiento")
+def consultar_equipamiento_sala(id_sala: int, bd: Session = Depends(obtener_bd)):
+    # 1. Comprobar la existencia de la sala
+    sala_db = bd.query(modelos.SalasDB).filter(modelos.SalasDB.id_sala == id_sala).first()
+
+    if not sala_db:
+        raise HTTPException(status_code=404, detail="Error: La sala consultada no existe en el sistema")
+
+    # 2. Buscar todos los equipos que pertenezcan a ese id_sala
+    equipos_db = bd.query(models_equipamiento.EquipamientoDB).filter(
+        models_equipamiento.EquipamientoDB.id_sala == id_sala).all()
+
+    # 3. Darle el formato exacto que pide el documento
+    lista_equipos = []
+    for equipo in equipos_db:
+        lista_equipos.append({
+            "id_equipamiento": equipo.id_equipamiento,
+            "numeroDeSerie": equipo.numeroDeSerie,
+            "cantidad": equipo.cantidad,
+            "estado": equipo.estado
+        })
+
+    return {
+        "código": 200,
+        "mensaje": "Equipamiento consultado correctamente",
+        "equipamiento": lista_equipos
     }
